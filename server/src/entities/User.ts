@@ -2,10 +2,10 @@ import { Entity, PrimaryKey, Property } from '@mikro-orm/core'
 import { Field, Int, ObjectType } from 'type-graphql';
 
 @ObjectType()
-@Entity() //database table
-export class Post {
-  @Field(() => Int) // exposing to a graphql schema
-  @PrimaryKey() // regular columns
+@Entity()
+export class User {
+  @Field(() => Int)
+  @PrimaryKey()
   id!: number;
 
   @Field(() => String)
@@ -17,6 +17,10 @@ export class Post {
   updatedAt = new Date();
 
   @Field()
+  @Property({ type: 'text', unique: true }) 
+  username!: string;
+
+  // without @Field() you can't access password trough grapql query (only a database column)
   @Property({ type: 'text' }) 
-  title!: string;
+  password!: string;
 }
