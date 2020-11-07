@@ -1,4 +1,4 @@
-import { MODE } from "./contants";
+import { __prod__ } from "./contants";
 import { Post } from "./entities/Post";
 import { User } from "./entities/User";
 import { MikroORM } from '@mikro-orm/core';
@@ -14,7 +14,7 @@ export default {
 	user: 'postgres',
 	password: 'postgres',
 	type: 'postgresql',
-	debug: !MODE,
+	debug: !__prod__,
 } as Parameters<typeof MikroORM.init>[0];
 
 // this config was created for using this info from the CLI
