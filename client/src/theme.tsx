@@ -13,7 +13,7 @@ const theme = {
   fonts,
   breakpoints,
   // icons: {
-    // ...chakraTheme.icons,
+  //   ...chakraTheme.icons,
   //   logo: {
   //     path: (
   //       <svg
