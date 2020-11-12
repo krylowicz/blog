@@ -6,6 +6,11 @@
       "dom.iterable",
       "esnext"
     ],
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "noImplicitThis": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,

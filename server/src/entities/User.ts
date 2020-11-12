@@ -9,12 +9,12 @@ export class User {
   id!: number;
 
   @Field(() => String)
-  @Property({ type: 'date' })
-  createdAt = new Date();
+  @Property({ type: 'date'})
+  created_at = new Date();
 
   @Field(() => String)
-  @Property({ type: 'date', onUpdate: () => new Date() })
-  updatedAt = new Date();
+  @Property({ type: 'date', onUpdate: () => new Date()})
+  updated_at = new Date();
 
   @Field()
   @Property({ type: 'text', unique: true }) 
