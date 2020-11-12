@@ -1,5 +1,5 @@
 import React from 'react'
-import { Box, Flex, Link } from '@chakra-ui/core';
+import { Box, Button, Flex, Link } from '@chakra-ui/core';
 import NextLink from 'next/link';
 import { useGetCurrentUserQuery } from '../generated/graphql';
 
@@ -15,23 +15,24 @@ export const NavBar: React.FC<NavBarProps> = ({}) => {
     body = (
       <>
         <NextLink href="/login">
-          <Link color="white" mr={2}>login</Link>
+          <Link mr={2}>login</Link>
         </NextLink>
         <NextLink href="/register">
-          <Link color="white">register</Link>
+          <Link>register</Link>
         </NextLink>
       </>
     )
   } else { // user logged in
     body = (
-      <Box>
-        {data.getCurrentUser.username}
-      </Box>
+      <Flex>        
+        <Box mr={2}>{data.getCurrentUser.username}</Box>
+        <Button variant="link">logout</Button>
+      </Flex>
     )
   }
 
   return (
-    <Flex bg="tomato" p={4}>
+    <Flex bg="tan" p={4}>
       <Box ml='auto'>
         {body}
       </Box>

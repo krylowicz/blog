@@ -99,6 +99,11 @@ export type UsernamePasswordInput = {
   password: Scalars['String'];
 };
 
+export type UserFragment = (
+  { __typename?: 'User' }
+  & Pick<User, 'id' | 'username'>
+);
+
 export type LoginMutationVariables = Exact<{
   options: UsernamePasswordInput;
 }>;
@@ -113,7 +118,7 @@ export type LoginMutation = (
       & Pick<FieldError, 'field' | 'message'>
     )>>, user?: Maybe<(
       { __typename?: 'User' }
-      & Pick<User, 'id' | 'username'>
+      & UserFragment
     )> }
   ) }
 );
@@ -133,7 +138,8 @@ export type RegisterMutation = (
       & Pick<FieldError, 'field' | 'message'>
     )>>, user?: Maybe<(
       { __typename?: 'User' }
-      & Pick<User, 'id' | 'username' | 'created_at'>
+      & Pick<User, 'created_at'>
+      & UserFragment
     )> }
   ) }
 );
@@ -145,11 +151,16 @@ export type GetCurrentUserQuery = (
   { __typename?: 'Query' }
   & { getCurrentUser?: Maybe<(
     { __typename?: 'User' }
-    & Pick<User, 'id' | 'username'>
+    & UserFragment
   )> }
 );
 
-
+export const UserFragmentDoc = gql`
+    fragment User on User {
+  id
+  username
+}
+    `;
 export const LoginDocument = gql`
     mutation Login($options: UsernamePasswordInput!) {
   login(options: $options) {
@@ -158,12 +169,11 @@ export const LoginDocument = gql`
       message
     }
     user {
-      id
-      username
+      ...User
     }
   }
 }
-    `;
+    ${UserFragmentDoc}`;
 
 export function useLoginMutation() {
   return Urql.useMutation<LoginMutation, LoginMutationVariables>(LoginDocument);
@@ -176,13 +186,12 @@ export const RegisterDocument = gql`
       message
     }
     user {
-      id
-      username
+      ...User
       created_at
     }
   }
 }
-    `;
+    ${UserFragmentDoc}`;
 
 export function useRegisterMutation() {
   return Urql.useMutation<RegisterMutation, RegisterMutationVariables>(RegisterDocument);
@@ -190,11 +199,10 @@ export function useRegisterMutation() {
 export const GetCurrentUserDocument = gql`
     query getCurrentUser {
   getCurrentUser {
-    id
-    username
+    ...User
   }
 }
-    `;
+    ${UserFragmentDoc}`;
 
 export function useGetCurrentUserQuery(options: Omit<Urql.UseQueryArgs<GetCurrentUserQueryVariables>, 'query'> = {}) {
   return Urql.useQuery<GetCurrentUserQuery>({ query: GetCurrentUserDocument, ...options });
