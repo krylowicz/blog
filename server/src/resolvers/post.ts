@@ -6,12 +6,12 @@ import { MyContext } from '../types';
 export class PostResolver {
 
   @Query(() => [Post]) //type-graphql requires capital letter
-  posts(@Ctx() { em }: MyContext): Promise<Post[]> {
+  getAllposts(@Ctx() { em }: MyContext): Promise<Post[]> {
     return em.find(Post, {});
   }
 
   @Query(() => Post, {nullable: true}) //graphql types
-  post(
+  getPostById(
     @Arg('id') id: number, // number is a typescript type
     @Ctx() { em }: MyContext
   ): Promise<Post | null> {

@@ -14,15 +14,15 @@ export type Scalars = {
 
 export type Query = {
   __typename?: 'Query';
-  posts: Array<Post>;
-  post?: Maybe<Post>;
+  getAllposts: Array<Post>;
+  getPostById?: Maybe<Post>;
   getCurrentUser?: Maybe<User>;
   getAllUsers: Array<User>;
   getUserById: User;
 };
 
 
-export type QueryPostArgs = {
+export type QueryGetPostByIdArgs = {
   id: Scalars['Float'];
 };
 
@@ -164,6 +164,17 @@ export type GetCurrentUserQuery = (
   )> }
 );
 
+export type GetAllPostsQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type GetAllPostsQuery = (
+  { __typename?: 'Query' }
+  & { getAllposts: Array<(
+    { __typename?: 'Post' }
+    & Pick<Post, 'id' | 'title' | 'createdAt'>
+  )> }
+);
+
 export const UserFragmentDoc = gql`
     fragment User on User {
   id
@@ -224,4 +235,17 @@ export const GetCurrentUserDocument = gql`
 
 export function useGetCurrentUserQuery(options: Omit<Urql.UseQueryArgs<GetCurrentUserQueryVariables>, 'query'> = {}) {
   return Urql.useQuery<GetCurrentUserQuery>({ query: GetCurrentUserDocument, ...options });
+};
+export const GetAllPostsDocument = gql`
+    query getAllPosts {
+  getAllposts {
+    id
+    title
+    createdAt
+  }
+}
+    `;
+
+export function useGetAllPostsQuery(options: Omit<Urql.UseQueryArgs<GetAllPostsQueryVariables>, 'query'> = {}) {
+  return Urql.useQuery<GetAllPostsQuery>({ query: GetAllPostsDocument, ...options });
 };
