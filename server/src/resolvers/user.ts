@@ -1,17 +1,11 @@
 import { User } from '../entities/User';
-import { Ctx, Resolver, Arg, Mutation, InputType, Field, Query, ObjectType } from 'type-graphql';
+import { Ctx, Resolver, Arg, Mutation, Field, Query, ObjectType } from 'type-graphql';
 import { MyContext } from '../types';
 import argon2 from 'argon2';
 import { EntityManager } from '@mikro-orm/postgresql';
 import { COOKIE_NAME } from '../constants';
-
-@InputType()
-class UsernamePasswordInput {
-  @Field()
-  username: string;
-  @Field()
-  password: string;
-}
+import { UserInput } from './UserInput';
+import { validateRegister } from '../utils/validateRegister';
 
 @ObjectType()
 class FieldError {
@@ -33,33 +27,19 @@ class UserResponse {
 export class UserResolver {
   @Mutation(() => UserResponse) //type-graphql requires capital letter
   async register(
-    @Arg('options') options: UsernamePasswordInput,
+    @Arg('options') options: UserInput,
     @Ctx() { em, req }: MyContext
   ): Promise<UserResponse> {
-    const { username, password } = options;
+    const errors = validateRegister(options)
+    if (errors) return { errors };
 
-    if (options.username.length <= 2) {
-      return {
-        errors: [{
-          field: "username",
-          message: "username length must be greater than 2",
-        }]
-      };
-    };
-
-    if (password.length <= 6) {
-      return {
-        errors: [{
-          field: "password",
-          message: "password length must be greater than 6",
-        }]
-      };
-    };
+    const { email, username, password } = options;
 
     const hashedPassword = await argon2.hash(password);
     let user;
     try {
       const result = await (em as EntityManager).createQueryBuilder(User).getKnexQuery().insert({
+        email,
         username,
         password: hashedPassword,
         created_at: new Date(),
@@ -83,11 +63,18 @@ export class UserResolver {
 
   @Mutation(() => UserResponse) //type-graphql requires capital letter
   async login(
-    @Arg('options') options: UsernamePasswordInput,
+    @Arg('options') options: UserInput,
     @Ctx() { em, req }: MyContext
   ): Promise<UserResponse> {
-    const { username, password } = options;
-    const user = await em.findOne(User, { username })
+    const { email, username, password } = options;
+    let user;
+
+    if (email) {
+      user = await em.findOne(User, { email });
+    } else if (username) {
+      user = await em.findOne(User, { username });
+    }
+  
     if (!user) {
       return {
         errors: [{
@@ -126,6 +113,15 @@ export class UserResolver {
       resolve(true);
     }));
   } 
+
+  // @Mutation(() => Boolean)
+  // async forgotPassword(
+  //   @Arg('email') email: string,
+  //   @Ctx() { req, em }: MyContext,
+  // ) {
+  //   // const user = await em.findOne(User, { email });
+  //   return true;
+  // }
 
   @Query(() => User, { nullable: true })
   async getCurrentUser(

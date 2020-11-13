@@ -18,19 +18,30 @@ const Login: React.FC<loginProps> = ({}) => {
   return (
     <Wrapper variant="small">
       <Formik 
-        initialValues={{ username: "", password: "" }} 
+        initialValues={{ email: "", username: "", password: "", usernameOrEmail: "" }} 
         onSubmit={async (values, { setErrors }) => {
-          const response = await login({ options: values });
+          let { email, username, password, usernameOrEmail } = values;          
+
+          if (usernameOrEmail.includes('@')) {
+            email = usernameOrEmail;
+            username = "";
+          } else {
+            username = usernameOrEmail;
+            email = "";
+          }
+
+          const response = await login({ options: { email, username, password } });
+
           if (response.data?.login.errors) {
             setErrors(toErrorMap(response.data.login.errors)); // ? isn't requires bc ts will infere that this is defined bc of if statement
           } else if (response.data?.login.user) {
             router.push('/');
           }
         }}
-      >      
+      >
         {({ isSubmitting }) => (
           <Form>
-            <InputField name="username" placeholder="Username" label="Username" />
+            <InputField name="usernameOrEmail" placeholder="Username or e-mail" label="Username or e-mail" />
             <Box mt={4}>
               <InputField name="password" placeholder="Password" label="Password" type="password" />
             </Box>

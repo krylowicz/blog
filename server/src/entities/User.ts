@@ -18,7 +18,11 @@ export class User {
 
   @Field()
   @Property({ type: 'text', unique: true }) 
-  username!: string;
+  email: string;
+
+  @Field()
+  @Property({ type: 'text', unique: true }) 
+  username: string;
 
   // without @Field() you can't access password trough grapql query (only a database column)
   @Property({ type: 'text' }) 
