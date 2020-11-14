@@ -3,6 +3,7 @@ import { Query, Resolver, Arg, Mutation, Field, InputType, Ctx, UseMiddleware, I
 import { MyContext } from 'src/types';
 import { isAuth } from '../middlewre/isAuth';
 import { getConnection } from 'typeorm';
+import { Upvote } from '../entities/Upvote';
 
 @InputType()
 class PostInput {
@@ -35,17 +36,26 @@ export class PostResolver {
     const realLimit = Math.min(50, limit);
     const realLimitPlusOne = Math.min(50, limit) + 1;
     
-    const queryBuilder = getConnection()
-    .getRepository(Post)
-    .createQueryBuilder("p")
-    .orderBy('"createdAt"', "DESC")
-    .take(realLimitPlusOne)
+    const replacements: any[] = [realLimitPlusOne];
 
     if (cursor) {
-      queryBuilder.where('"createdAt" < :cursor', { cursor: new Date(parseInt(cursor)) })
+      replacements.push(new Date(parseInt(cursor)));
     }
 
-    const posts = await queryBuilder.getMany()
+    const posts = await getConnection().query(`
+      select p.*,
+      json_build_object(
+        'id', u.id,
+        'username', u.username,
+        'email', u.email
+      ) author
+      from post p 
+      inner join public.user u on u.id = p."authorId"
+      ${cursor ? `where p."createdAt" < $2` : ''}
+      order by p."createdAt" DESC
+      limit $1
+    `, replacements)
+
     return { posts: posts.slice(0, realLimit), hasMore: posts.length === realLimitPlusOne }; 
   }
 
@@ -92,5 +102,29 @@ export class PostResolver {
     }
 
     return true;  
+  }
+
+  @Mutation(() => Boolean)
+  @UseMiddleware(isAuth)
+  async vote(
+    @Arg('postId', () => Int) postId: number,
+    @Arg('value', () => Int) value: number,
+    @Ctx() { req }: MyContext
+  ): Promise<boolean> {
+    const { userId } = req.session!;
+    const isUpvote = value !== -1;
+    const signedValue = isUpvote ? 1 : -1;
+
+    await getConnection().query(`
+      START TRANSACTION;
+      insert into upvote ("userId", "postId", value)
+      values(${userId}, ${postId}, ${signedValue});
+      update post
+      set points = points + ${signedValue}
+      where id = ${postId};
+      COMMIT;
+    `);
+
+    return true;
   }
 }

@@ -1,5 +1,5 @@
 import { User } from '../entities/User';
-import { Ctx, Resolver, Arg, Mutation, Field, Query, ObjectType } from 'type-graphql';
+import { Ctx, Resolver, Arg, Mutation, Field, Query, ObjectType, FieldResolver, Root } from 'type-graphql';
 import { MyContext } from '../types';
 import argon2 from 'argon2';
 import { COOKIE_NAME, FORGOT_PASSWORD_PREFIX } from '../constants';
@@ -33,8 +33,20 @@ class UserResponse {
 //   newPassword: string;
 // }
 
-@Resolver()
+@Resolver(User)
 export class UserResolver {
+  @FieldResolver(() => String)
+  showEmail(
+    @Root() user: User,
+    @Ctx() { req }: MyContext
+  ): string {
+    if (req.session!.userId == user.id) {
+      return user.email;
+    }
+
+    return "";
+  }
+
   @Mutation(() => UserResponse) //type-graphql requires capital letter
   async register(
     @Arg('options') options: UserInput,
