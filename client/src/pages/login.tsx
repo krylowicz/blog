@@ -45,7 +45,7 @@ const Login: React.FC<loginProps> = ({}) => {
             <Box mt={4}>
               <InputField name="password" placeholder="Password" label="Password" type="password" />
             </Box>
-            <Button mt={4} variantColor="teal" isLoading={isSubmitting} type="submit">Login</Button>
+            <Button mt={4} isLoading={isSubmitting} type="submit">Login</Button>
           </Form>
         )}
       </Formik>

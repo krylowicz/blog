@@ -18,10 +18,10 @@ const Register: React.FC<registerProps> = ({}) => {
   return (
     <Wrapper variant="small">
       <Formik 
-        initialValues={{ username: "", password: "" }} 
+        initialValues={{ username: "", password: "", email: "" }} 
         onSubmit={async (values, { setErrors }) => {
-          const response = await register(values);
-          console.log(response);
+          const response = await register({ options: values });
+
           if (response.data?.register.errors) {
             setErrors(toErrorMap(response.data.register.errors)); // ? isn't requires bc ts will infere that this is defined bc of if statement
           } else if (response.data?.register.user) {
@@ -31,11 +31,14 @@ const Register: React.FC<registerProps> = ({}) => {
       >      
         {({ isSubmitting }) => (
           <Form>
-            <InputField name="username" placeholder="Username" label="Username" />
+            <InputField name="email" placeholder="E-mail" label="E-mail" type="email" />
+            <Box mt={4}>
+              <InputField name="username" placeholder="Username" label="Username" />
+            </Box>
             <Box mt={4}>
               <InputField name="password" placeholder="Password" label="Password" type="password" />
             </Box>
-            <Button mt={4} variantColor="teal" isLoading={isSubmitting} type="submit">Register</Button>
+            <Button mt={4} isLoading={isSubmitting} type="submit">Register</Button>
           </Form>
         )}
       </Formik>
