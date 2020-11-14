@@ -22,6 +22,12 @@ export type Query = {
 };
 
 
+export type QueryGetAllpostsArgs = {
+  cursor?: Maybe<Scalars['String']>;
+  limit: Scalars['Int'];
+};
+
+
 export type QueryGetPostByIdArgs = {
   id: Scalars['Float'];
 };
@@ -226,14 +232,17 @@ export type GetCurrentUserQuery = (
   )> }
 );
 
-export type GetAllPostsQueryVariables = Exact<{ [key: string]: never; }>;
+export type GetAllPostsQueryVariables = Exact<{
+  limit: Scalars['Int'];
+  cursor?: Maybe<Scalars['String']>;
+}>;
 
 
 export type GetAllPostsQuery = (
   { __typename?: 'Query' }
   & { getAllposts: Array<(
     { __typename?: 'Post' }
-    & Pick<Post, 'id' | 'title' | 'createdAt'>
+    & Pick<Post, 'id' | 'title' | 'text' | 'createdAt'>
   )> }
 );
 
@@ -336,10 +345,11 @@ export function useGetCurrentUserQuery(options: Omit<Urql.UseQueryArgs<GetCurren
   return Urql.useQuery<GetCurrentUserQuery>({ query: GetCurrentUserDocument, ...options });
 };
 export const GetAllPostsDocument = gql`
-    query getAllPosts {
-  getAllposts {
+    query getAllPosts($limit: Int!, $cursor: String) {
+  getAllposts(limit: $limit, cursor: $cursor) {
     id
     title
+    text
     createdAt
   }
 }

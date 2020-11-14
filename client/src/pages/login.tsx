@@ -2,7 +2,7 @@ import React from 'react'
 import { Formik, Form } from 'formik'; 
 import { Wrapper } from '../components/Wrapper';
 import { InputField } from '../components/InputField';
-import { Box, Button, Flex, Link, Spacer } from '@chakra-ui/core';
+import { Box, Button, Flex, Link } from '@chakra-ui/core';
 import { useLoginMutation } from '../generated/graphql';
 import { toErrorMap } from '../utils/toErrorMap';
 import { useRouter } from 'next/router';
@@ -36,7 +36,11 @@ const Login: React.FC<loginProps> = ({}) => {
           if (response.data?.login.errors) {
             setErrors(toErrorMap(response.data.login.errors)); // ? isn't requires bc ts will infere that this is defined bc of if statement
           } else if (response.data?.login.user) {
-            router.push('/');
+            if (typeof router.query.next == 'string') {
+              router.push(router.query.next);
+            } else {
+              router.push('/');
+            }
           }
         }}
       >

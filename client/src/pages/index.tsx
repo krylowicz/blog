@@ -7,7 +7,7 @@ import NextLink from 'next/link';
 import { Link } from '@chakra-ui/core';
 
 const Index = () => {
-  const [{ data }] = useGetAllPostsQuery();
+  const [{ data }] = useGetAllPostsQuery({ variables: { limit: 10 } });
 
   return (
     <Layout>
