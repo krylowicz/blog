@@ -28,7 +28,7 @@ export const NavBar: React.FC<NavBarProps> = ({}) => {
     )
   } else { // user logged in
     body = (
-      <Flex>        
+      <Flex position="sticky" top={0} zIndex={2}>        
         <Box mr={2}>{data.getCurrentUser.username}</Box>
         <Button variant="link" onClick={() => logout()} isLoading={logoutFetching}>logout</Button>
       </Flex>
