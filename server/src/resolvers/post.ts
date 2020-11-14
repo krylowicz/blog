@@ -1,5 +1,5 @@
 import { Post } from '../entities/Post';
-import { Query, Resolver, Arg, Mutation, Field, InputType, Ctx, UseMiddleware, Int } from 'type-graphql';
+import { Query, Resolver, Arg, Mutation, Field, InputType, Ctx, UseMiddleware, Int, FieldResolver, Root, ObjectType } from 'type-graphql';
 import { MyContext } from 'src/types';
 import { isAuth } from '../middlewre/isAuth';
 import { getConnection } from 'typeorm';
@@ -12,26 +12,41 @@ class PostInput {
   text: string
 }
 
-@Resolver()
+@ObjectType()
+class PaginatedPosts {
+  @Field(() => [Post])
+  posts: Post[]
+  @Field()
+  hasMore: boolean;
+}
+
+@Resolver(Post)
 export class PostResolver {
-  @Query(() => [Post]) //type-graphql requires capital letter
-  getAllposts(
+  @FieldResolver(() => String)
+  textSnippet(@Root() root: Post) {
+    return root.text.slice(0, 50);
+  }
+
+  @Query(() => PaginatedPosts) //type-graphql requires capital letter
+  async getAllposts(
     @Arg('limit', () => Int) limit: number,
     @Arg('cursor', () => String, { nullable: true }) cursor: string | null // when setting nullable to true setting explicit type in neccesary
-  ): Promise<Post[]> {
+  ): Promise<PaginatedPosts> {
     const realLimit = Math.min(50, limit);
+    const realLimitPlusOne = Math.min(50, limit) + 1;
     
     const queryBuilder = getConnection()
     .getRepository(Post)
     .createQueryBuilder("p")
     .orderBy('"createdAt"', "DESC")
-    .take(realLimit)
+    .take(realLimitPlusOne)
 
     if (cursor) {
       queryBuilder.where('"createdAt" < :cursor', { cursor: new Date(parseInt(cursor)) })
     }
 
-    return queryBuilder.getMany();
+    const posts = await queryBuilder.getMany()
+    return { posts: posts.slice(0, realLimit), hasMore: posts.length === realLimitPlusOne }; 
   }
 
   @Query(() => Post, {nullable: true}) //graphql types

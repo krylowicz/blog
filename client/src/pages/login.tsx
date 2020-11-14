@@ -50,10 +50,10 @@ const Login: React.FC<loginProps> = ({}) => {
             <Box mt={4}>
               <InputField name="password" placeholder="Password" label="Password" type="password" />
             </Box>
-            <Flex align="middle">
+            <Flex alignItems="baseline">
               <Button mt={4} isLoading={isSubmitting} type="submit">Login</Button>
               <NextLink href="/forgot-password">
-                <Link mt={6} ml="auto">forgot password?</Link>
+                <Link ml="auto">forgot password?</Link>
               </NextLink>
             </Flex>
           </Form>
