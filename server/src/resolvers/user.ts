@@ -2,12 +2,12 @@ import { User } from '../entities/User';
 import { Ctx, Resolver, Arg, Mutation, Field, Query, ObjectType } from 'type-graphql';
 import { MyContext } from '../types';
 import argon2 from 'argon2';
-import { EntityManager } from '@mikro-orm/postgresql';
 import { COOKIE_NAME, FORGOT_PASSWORD_PREFIX } from '../constants';
 import { UserInput } from './UserInput';
 import { validateRegister } from '../utils/validateRegister';
 import { sendEmail } from '../utils/sendEmail';
 import { v4 } from 'uuid';
+import { getConnection } from 'typeorm';
 
 @ObjectType()
 class FieldError {
@@ -38,7 +38,7 @@ export class UserResolver {
   @Mutation(() => UserResponse) //type-graphql requires capital letter
   async register(
     @Arg('options') options: UserInput,
-    @Ctx() { em, req }: MyContext
+    @Ctx() { req }: MyContext
   ): Promise<UserResponse> {
     const errors = validateRegister(options)
     if (errors) return { errors };
@@ -48,14 +48,13 @@ export class UserResolver {
     const hashedPassword = await argon2.hash(password);
     let user;
     try {
-      const result = await (em as EntityManager).createQueryBuilder(User).getKnexQuery().insert({
+      // User.create({}).save()
+      const result = await getConnection().createQueryBuilder().insert().into(User).values({
         email,
         username,
         password: hashedPassword,
-        created_at: new Date(),
-        updated_at: new Date(),
-      }).returning('*');
-      user = result[0];
+      }).returning('*').execute();
+      user = result.raw[0];
     } catch(err) {
       if (err.detail.includes('already exist')) {
         return {
@@ -74,15 +73,15 @@ export class UserResolver {
   @Mutation(() => UserResponse) //type-graphql requires capital letter
   async login(
     @Arg('options') options: UserInput,
-    @Ctx() { em, req }: MyContext
+    @Ctx() { req }: MyContext
   ): Promise<UserResponse> {
     const { email, username, password } = options;
     let user;
 
     if (email) {
-      user = await em.findOne(User, { email });
+      user = await User.findOne({ where: { email } });
     } else if (username) {
-      user = await em.findOne(User, { username });
+      user = await User.findOne({ where: { username } });
     }
   
     if (!user) {
@@ -127,9 +126,9 @@ export class UserResolver {
   @Mutation(() => Boolean)
   async forgotPassword(
     @Arg('email') email: string,
-    @Ctx() { em, redis }: MyContext,
+    @Ctx() { redis }: MyContext,
   ): Promise<Boolean> {
-    const user = await em.findOne(User, { email });
+    const user = await User.findOne({ where: { email } }); // where is neccesary bc email is no a primary key
     if (!user) return true;
 
     const token = v4();
@@ -146,7 +145,7 @@ export class UserResolver {
     // @Arg('options') options: ChangePasswordInput,
     @Arg('token') token: string,
     @Arg('newPassword') newPassword: string,
-    @Ctx() { em, redis, req }: MyContext,
+    @Ctx() { redis, req }: MyContext,
   ): Promise<UserResponse> {
     // const { token, newPassword } = options;
 
@@ -173,8 +172,8 @@ export class UserResolver {
         ]
       }
     }
-
-    const user = await em.findOne(User, { id: parseInt(userId) });
+    const parsedUserId = parseInt(userId);
+    const user = await User.findOne(parsedUserId);
 
     if (!user) {
       return {
@@ -187,9 +186,7 @@ export class UserResolver {
       }
     }
 
-    user.password = await argon2.hash(newPassword);
-    await em.persistAndFlush(user);
-
+    await User.update({ id: parsedUserId }, { password: await argon2.hash(newPassword) })
     await redis.del(key);
 
     req.session!.userId = user.id; // login in user after password update
@@ -198,26 +195,25 @@ export class UserResolver {
 
   @Query(() => User, { nullable: true })
   async getCurrentUser(
-    @Ctx() { em, req }: MyContext
-  ): Promise<User | null> {
+    @Ctx() { req }: MyContext
+  ): Promise<User | undefined> {
     if (!req.session!.userId) {
-      return null;
+      return undefined;
     }
-    return await em.findOne(User, { id: req.session!.userId });
+    return await User.findOne(req.session!.userId);
   }
 
   @Query(() => [User])
-  async getAllUsers(@Ctx() { em }: MyContext): Promise<User[]> {
-    return await em.find(User, {});
+  async getAllUsers(): Promise<User[]> {
+    return await User.find();
   }
 
   @Query(() => User)
   async getUserById(
     @Arg('id') id: number,
-    @Ctx() { em }: MyContext
-  ): Promise<User | null> {
-    const user = await em.findOne(User, { id });
+  ): Promise<User | undefined> {
+    const user = await User.findOne(id);
     if (user) return user;
-    return null;
+    return undefined;
   }
 }

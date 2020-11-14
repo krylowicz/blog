@@ -1,30 +1,30 @@
-import { Entity, PrimaryKey, Property } from '@mikro-orm/core'
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, BaseEntity } from 'typeorm';
 import { Field, Int, ObjectType } from 'type-graphql';
 
 @ObjectType()
 @Entity()
-export class User {
+export class User extends BaseEntity {
   @Field(() => Int)
-  @PrimaryKey()
+  @PrimaryGeneratedColumn()
   id!: number;
 
   @Field(() => String)
-  @Property({ type: 'date'})
-  created_at = new Date();
+  @CreateDateColumn()
+  created_at: Date;
 
   @Field(() => String)
-  @Property({ type: 'date', onUpdate: () => new Date()})
-  updated_at = new Date();
+  @UpdateDateColumn()
+  updated_at: Date;
 
   @Field()
-  @Property({ type: 'text', unique: true }) 
+  @Column({ unique: true }) 
   email: string;
 
   @Field()
-  @Property({ type: 'text', unique: true }) 
+  @Column({ unique: true }) 
   username: string;
 
   // without @Field() you can't access password trough grapql query (only a database column)
-  @Property({ type: 'text' }) 
+  @Column() 
   password!: string;
 }
