@@ -29,14 +29,17 @@ export class PostResolver {
   }
 
   @Query(() => PaginatedPosts) //type-graphql requires capital letter
-  async getAllposts(
+  async getAllPosts(
     @Arg('limit', () => Int) limit: number,
-    @Arg('cursor', () => String, { nullable: true }) cursor: string | null // when setting nullable to true setting explicit type in neccesary
+    @Arg('cursor', () => String, { nullable: true }) cursor: string | null, // when setting nullable to true setting explicit type in neccesary
+    @Ctx() { req }: MyContext
   ): Promise<PaginatedPosts> {
+    const { userId } = req.session!;
+
     const realLimit = Math.min(50, limit);
     const realLimitPlusOne = Math.min(50, limit) + 1;
     
-    const replacements: any[] = [realLimitPlusOne];
+    const replacements: any[] = [realLimitPlusOne, userId];
 
     if (cursor) {
       replacements.push(new Date(parseInt(cursor)));
@@ -48,10 +51,11 @@ export class PostResolver {
         'id', u.id,
         'username', u.username,
         'email', u.email
-      ) author
+      ) author,
+      ${ userId ? '(select value from upvote where "userId" = $2 and "postId" = p.id) "voteStatus"' : 'null as "voteStatus"'}
       from post p 
       inner join public.user u on u.id = p."authorId"
-      ${cursor ? `where p."createdAt" < $2` : ''}
+      ${cursor ? `where p."createdAt" < $3` : ''}
       order by p."createdAt" DESC
       limit $1
     `, replacements)
@@ -112,18 +116,39 @@ export class PostResolver {
     @Ctx() { req }: MyContext
   ): Promise<boolean> {
     const { userId } = req.session!;
+
+    const upvote = await Upvote.findOne({ where: { postId, userId } })
     const isUpvote = value !== -1;
     const signedValue = isUpvote ? 1 : -1;
 
-    await getConnection().query(`
-      START TRANSACTION;
-      insert into upvote ("userId", "postId", value)
-      values(${userId}, ${postId}, ${signedValue});
-      update post
-      set points = points + ${signedValue}
-      where id = ${postId};
-      COMMIT;
-    `);
+     if (upvote && upvote.value !== signedValue) { //user has voted on the post before and they are changing thier vote
+       await getConnection().transaction(async tm => {
+        await tm.query(`
+          update upvote
+          set value = ${signedValue}
+          where "postId" = ${postId} and "userId" = ${userId}
+        `);
+
+        await tm.query(`
+          update post
+          set points = points + ${2 * signedValue}
+          where id = ${postId}
+        `);
+       })
+     } else if (!upvote) { // has never voted before
+      await getConnection().transaction(async tm => {
+        await tm.query(`
+          insert into upvote ("userId", "postId", value)
+          values(${userId}, ${postId}, ${signedValue});
+        `);
+
+        await tm.query(`
+          update post
+          set points = points + ${signedValue}
+          where id = ${postId};
+        `);
+      });
+     }
 
     return true;
   }

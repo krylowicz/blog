@@ -14,7 +14,7 @@ export type Scalars = {
 
 export type Query = {
   __typename?: 'Query';
-  getAllposts: PaginatedPosts;
+  getAllPosts: PaginatedPosts;
   getPostById?: Maybe<Post>;
   getCurrentUser?: Maybe<User>;
   getAllUsers: Array<User>;
@@ -22,7 +22,7 @@ export type Query = {
 };
 
 
-export type QueryGetAllpostsArgs = {
+export type QueryGetAllPostsArgs = {
   cursor?: Maybe<Scalars['String']>;
   limit: Scalars['Int'];
 };
@@ -49,7 +49,9 @@ export type Post = {
   title: Scalars['String'];
   text: Scalars['String'];
   points: Scalars['Float'];
+  voteStatus?: Maybe<Scalars['Int']>;
   authorId: Scalars['Float'];
+  author: User;
   createdAt: Scalars['String'];
   updatedAt: Scalars['String'];
   textSnippet: Scalars['String'];
@@ -60,8 +62,9 @@ export type User = {
   id: Scalars['Int'];
   email: Scalars['String'];
   username: Scalars['String'];
-  created_at: Scalars['String'];
-  updated_at: Scalars['String'];
+  createdAt: Scalars['String'];
+  updatedAt: Scalars['String'];
+  showEmail: Scalars['String'];
 };
 
 export type Mutation = {
@@ -69,6 +72,7 @@ export type Mutation = {
   createPost: Post;
   updatePost?: Maybe<Post>;
   deletePost: Scalars['Boolean'];
+  vote: Scalars['Boolean'];
   register: UserResponse;
   login: UserResponse;
   logout: Scalars['Boolean'];
@@ -90,6 +94,12 @@ export type MutationUpdatePostArgs = {
 
 export type MutationDeletePostArgs = {
   id: Scalars['Float'];
+};
+
+
+export type MutationVoteArgs = {
+  value: Scalars['Int'];
+  postId: Scalars['Int'];
 };
 
 
@@ -228,6 +238,17 @@ export type RegisterMutation = (
   ) }
 );
 
+export type VoteMutationVariables = Exact<{
+  value: Scalars['Int'];
+  postId: Scalars['Int'];
+}>;
+
+
+export type VoteMutation = (
+  { __typename?: 'Mutation' }
+  & Pick<Mutation, 'vote'>
+);
+
 export type GetCurrentUserQueryVariables = Exact<{ [key: string]: never; }>;
 
 
@@ -247,12 +268,16 @@ export type GetAllPostsQueryVariables = Exact<{
 
 export type GetAllPostsQuery = (
   { __typename?: 'Query' }
-  & { getAllposts: (
+  & { getAllPosts: (
     { __typename?: 'PaginatedPosts' }
     & Pick<PaginatedPosts, 'hasMore'>
     & { posts: Array<(
       { __typename?: 'Post' }
-      & Pick<Post, 'id' | 'createdAt' | 'updatedAt' | 'title' | 'textSnippet'>
+      & Pick<Post, 'id' | 'createdAt' | 'updatedAt' | 'title' | 'points' | 'textSnippet' | 'voteStatus'>
+      & { author: (
+        { __typename?: 'User' }
+        & Pick<User, 'id' | 'username'>
+      ) }
     )> }
   ) }
 );
@@ -344,6 +369,15 @@ export const RegisterDocument = gql`
 export function useRegisterMutation() {
   return Urql.useMutation<RegisterMutation, RegisterMutationVariables>(RegisterDocument);
 };
+export const VoteDocument = gql`
+    mutation Vote($value: Int!, $postId: Int!) {
+  vote(value: $value, postId: $postId)
+}
+    `;
+
+export function useVoteMutation() {
+  return Urql.useMutation<VoteMutation, VoteMutationVariables>(VoteDocument);
+};
 export const GetCurrentUserDocument = gql`
     query getCurrentUser {
   getCurrentUser {
@@ -357,14 +391,20 @@ export function useGetCurrentUserQuery(options: Omit<Urql.UseQueryArgs<GetCurren
 };
 export const GetAllPostsDocument = gql`
     query getAllPosts($limit: Int!, $cursor: String) {
-  getAllposts(limit: $limit, cursor: $cursor) {
+  getAllPosts(limit: $limit, cursor: $cursor) {
     hasMore
     posts {
       id
       createdAt
       updatedAt
       title
+      points
       textSnippet
+      voteStatus
+      author {
+        id
+        username
+      }
     }
   }
 }

@@ -6,6 +6,7 @@ import Layout from '../components/Layout';
 import NextLink from 'next/link';
 import { Box, Button, Flex, Heading, Stack, Text } from '@chakra-ui/core';
 import { useState } from 'react';
+import { Vote } from '../components/Vote';
 
 const Index = () => {
   const [variables, setVariables] = useState({ limit: 15, cursor: null as null | string });
@@ -33,17 +34,25 @@ const Index = () => {
         <div>loading..</div>
       ) : (
         <Stack spacing={8}>
-          { data!.getAllposts.posts.map(post => (
+          { data!.getAllPosts.posts.map(post => (
             <Box key={post.id} p={5} shadow="md" borderWidth="1px">
-              <Heading fontSize="xl">{post.title}</Heading>
-              <Text mt={4}>{post.textSnippet}</Text>
+              <Flex alignItems="center">
+                <Vote post={post} />
+                <Box width="100%">
+                  <Flex alignItems="center" justifyContent="space-between">
+                    <Heading fontSize="xl" >{post.title}</Heading>
+                    <Text fontSize="s" color="grey">posted by { post.author.username }</Text>
+                  </Flex>
+                  <Text mt={4}>{post.textSnippet}</Text>
+                </Box>
+              </Flex>
             </Box>
-          ))}
+          )) }
         </Stack>
       )}
-      { data && data.getAllposts.hasMore ? (
+      { data && data.getAllPosts.hasMore ? (
       <Flex>
-        <Button onClick={() => setVariables({ limit, cursor: data.getAllposts.posts[data.getAllposts.posts.length - 1].createdAt })} isLoading={stale} m="auto" my={8}>load more</Button>
+        <Button onClick={() => setVariables({ limit, cursor: data.getAllPosts.posts[data.getAllPosts.posts.length - 1].createdAt })} isLoading={stale} m="auto" my={8}>load more</Button>
       </Flex>
       ) : (
         <Box my={8} />

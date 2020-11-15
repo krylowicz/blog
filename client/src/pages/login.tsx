@@ -51,7 +51,7 @@ const Login: React.FC<loginProps> = ({}) => {
               <InputField name="password" placeholder="Password" label="Password" type="password" />
             </Box>
             <Flex alignItems="baseline">
-              <Button mt={4} isLoading={isSubmitting} type="submit">Login</Button>
+              <Button colorScheme="teal" mt={4} isLoading={isSubmitting} type="submit">Login</Button>
               <NextLink href="/forgot-password">
                 <Link ml="auto">forgot password?</Link>
               </NextLink>

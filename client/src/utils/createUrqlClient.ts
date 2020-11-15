@@ -1,9 +1,10 @@
 import { cacheExchange, Resolver } from '@urql/exchange-graphcache';
 import { dedupExchange, Exchange, fetchExchange, stringifyVariables } from 'urql';
 import { pipe, tap } from 'wonka';
-import { GetCurrentUserDocument, GetCurrentUserQuery, LoginMutation, LogoutMutation, RegisterMutation } from '../generated/graphql';
+import { GetCurrentUserDocument, GetCurrentUserQuery, LoginMutation, LogoutMutation, RegisterMutation, VoteMutationVariables } from '../generated/graphql';
 import { betterUpdateQuery } from './betterUpdateQuery';
 import Router from 'next/router';
+import gql from 'graphql-tag';
 
 export const errorExchange: Exchange = ({ forward }) => ops$ => {
   return pipe (
@@ -65,11 +66,46 @@ export const createUrqlClient = (ssrExchange: any) => ({
       },
       resolvers: {
         Query: {
-          getAllposts: cursorPagination(),
+          getAllPosts: cursorPagination(),
         }
       },
       updates: {
         Mutation: {
+          vote: (_result, args, cache, info) => {
+            const { postId, value } = args as VoteMutationVariables;
+            const data = cache.readFragment(
+              gql`
+                fragment _ on Post {
+                  id
+                  points
+                  voteStatus
+                }
+              `, { id: postId } as any
+            );
+            
+            if (data) {
+              if (data.voteStatus === value) {
+                return;
+              }
+
+              const newPoints = (data.points as number) + ((!data.voteStatus ? 1 : 2) * value);
+              cache.writeFragment(
+                gql`
+                  fragment _ on Post {
+                    points
+                    voteStatus
+                  }
+                `, { id: postId, points: newPoints, voteStatus: value } as any
+              );
+            }
+          },
+          createPost: (_result, args, cache, info) => {
+            const allFields = cache.inspectFields('Query');
+            const fieldInfos = allFields.filter(info => info.fieldName == 'getAllPosts');
+            fieldInfos.forEach(fieldInfo => {
+              cache.invalidate('Query', 'getAllPosts', fieldInfo.arguments || {} );
+            });
+          },
           login: (_result, args, cache, info) => {
             betterUpdateQuery<LoginMutation, GetCurrentUserQuery>(
               cache,

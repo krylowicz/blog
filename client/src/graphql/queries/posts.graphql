@@ -1,12 +1,18 @@
 query getAllPosts($limit: Int!, $cursor: String) {
-  getAllposts(limit: $limit, cursor: $cursor) {
+  getAllPosts(limit: $limit, cursor: $cursor) {
     hasMore
     posts {
       id
       createdAt
       updatedAt
       title
+      points
       textSnippet
+      voteStatus
+      author {
+        id
+        username
+      }
     }
   }
 }
