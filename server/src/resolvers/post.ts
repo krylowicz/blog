@@ -86,21 +86,24 @@ export class PostResolver {
   }
 
   @Mutation(() => Post, { nullable: true })
+  @UseMiddleware(isAuth)
   async updatePost(
-    @Arg('id') id: number,
+    @Arg('id', () => Int) id: number,
     @Arg('title') title: string,
-  ): Promise<Post | null> {
-    const post =  await Post.findOne(id);
-    
-    if (!post) {
-      return null;
-    }
-    if (title != undefined) { 
-      post.title = title;
-      Post.update({ id }, { title })
-    }
+    @Arg('text') text: string,
+    @Ctx() { req }: MyContext,
+  ): Promise<Post | null> { 
+    const { userId } = req.session!;
 
-    return post;
+    const result = await getConnection()
+    .createQueryBuilder()
+    .update(Post)
+    .set({ title, text })
+    .where('id = :id and "authorId" = :authorId', { id, authorId: userId })
+    .returning('*')
+    .execute();
+
+    return result.raw[0];
   }
 
   @Mutation(() => Boolean)

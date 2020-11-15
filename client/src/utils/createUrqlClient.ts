@@ -57,7 +57,7 @@ export const cursorPagination = (): Resolver => {
 export const createUrqlClient = (ssrExchange: any, ctx: any) => {
   let cookie = '';
   if (isServer()) {
-    cookie = ctx.req.headers.cookie;  
+    cookie = ctx?.req?.headers?.cookie;  
   }
 
   return {
@@ -83,7 +83,7 @@ export const createUrqlClient = (ssrExchange: any, ctx: any) => {
           Mutation: {
             deletePost: (_result, args, cache, info) => {
               cache.invalidate({ __typename: 'Post', id: (args as DeletePostMutationVariables).id});
-              Router.push('/');
+              Router.back();
             },
             vote: (_result, args, cache, info) => {
               const { postId, value } = args as VoteMutationVariables;
@@ -134,7 +134,12 @@ export const createUrqlClient = (ssrExchange: any, ctx: any) => {
                     }
                   }
                 }
-              )
+              );
+              const allFields = cache.inspectFields('Query');
+              const fieldInfos = allFields.filter(info => info.fieldName == 'getAllPosts');
+              fieldInfos.forEach(fieldInfo => {
+                cache.invalidate('Query', 'getAllPosts', fieldInfo.arguments || {} );
+              });
             },
             logout: (_result, args, cache, info) => {
               betterUpdateQuery<LogoutMutation, GetCurrentUserQuery>(
@@ -142,7 +147,12 @@ export const createUrqlClient = (ssrExchange: any, ctx: any) => {
                 { query: GetCurrentUserDocument },
                 _result,
                 () => ({ getCurrentUser: null }) 
-              )
+              );
+              const allFields = cache.inspectFields('Query');
+              const fieldInfos = allFields.filter(info => info.fieldName == 'getAllPosts');
+              fieldInfos.forEach(fieldInfo => {
+                cache.invalidate('Query', 'getAllPosts', fieldInfo.arguments || {} );
+              });
             },
             register: (_result, args, cache, info) => {
               betterUpdateQuery<RegisterMutation, GetCurrentUserQuery>(

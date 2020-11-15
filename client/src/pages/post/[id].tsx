@@ -4,8 +4,9 @@ import { useDeletePostMutation, useGetCurrentUserQuery, useGetPostByIdQuery } fr
 import { createUrqlClient } from '../../utils/createUrqlClient';
 import Layout from '../../components/Layout';
 import React from 'react';
-import { Box, Heading, IconButton } from '@chakra-ui/core';
-import { DeleteIcon } from '@chakra-ui/icons';
+import { Box, Flex, Heading, IconButton } from '@chakra-ui/core';
+import { DeleteIcon, EditIcon } from '@chakra-ui/icons';
+import NextLink from 'next/link';
 
 const Post = () => {
   const router = useRouter();
@@ -18,6 +19,8 @@ const Post = () => {
   });
   const [, deletePost] = useDeletePostMutation();
   const [{ data: userData }] = useGetCurrentUserQuery();
+
+  const post = data?.getPostById;
 
   if (error) {
     return (
@@ -45,12 +48,17 @@ const Post = () => {
 
   return (
     <Layout>
-      <Heading>{data.getPostById?.title}</Heading>
-      {data.getPostById?.text}
-      { data?.getPostById.author.id === userData?.getCurrentUser?.id ? (
-        <IconButton aria-label="delete post" icon={ <DeleteIcon /> } onClick={() => {
-          deletePost({ id: data.getPostById?.id as any })
-        }} />
+      <Heading>{post?.title}</Heading>
+      {post?.text}
+      { post?.author.id === userData?.getCurrentUser?.id ? (
+        <Flex >
+          <IconButton aria-label="delete post" icon={ <DeleteIcon /> } onClick={() => {
+            deletePost({ id: post?.id as any })
+          }} />
+          <NextLink href="/post/edit/[id]" as={`/post/edit/${post?.id}`}>
+            <IconButton aria-label="edit post" icon={ <EditIcon /> } ml={4} />
+          </NextLink>
+        </Flex>
       ) : null }
     </Layout>
   )
