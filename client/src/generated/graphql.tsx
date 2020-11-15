@@ -29,7 +29,7 @@ export type QueryGetAllPostsArgs = {
 
 
 export type QueryGetPostByIdArgs = {
-  id: Scalars['Float'];
+  id: Scalars['Int'];
 };
 
 
@@ -93,7 +93,7 @@ export type MutationUpdatePostArgs = {
 
 
 export type MutationDeletePostArgs = {
-  id: Scalars['Float'];
+  id: Scalars['Int'];
 };
 
 
@@ -194,6 +194,16 @@ export type CreatePostMutation = (
   ) }
 );
 
+export type DeletePostMutationVariables = Exact<{
+  id: Scalars['Int'];
+}>;
+
+
+export type DeletePostMutation = (
+  { __typename?: 'Mutation' }
+  & Pick<Mutation, 'deletePost'>
+);
+
 export type ForgotPasswordMutationVariables = Exact<{
   email: Scalars['String'];
 }>;
@@ -257,6 +267,23 @@ export type GetCurrentUserQuery = (
   & { getCurrentUser?: Maybe<(
     { __typename?: 'User' }
     & UserFragment
+  )> }
+);
+
+export type GetPostByIdQueryVariables = Exact<{
+  id: Scalars['Int'];
+}>;
+
+
+export type GetPostByIdQuery = (
+  { __typename?: 'Query' }
+  & { getPostById?: Maybe<(
+    { __typename?: 'Post' }
+    & Pick<Post, 'id' | 'createdAt' | 'updatedAt' | 'title' | 'text' | 'points' | 'voteStatus'>
+    & { author: (
+      { __typename?: 'User' }
+      & Pick<User, 'id' | 'username'>
+    ) }
   )> }
 );
 
@@ -329,6 +356,15 @@ export const CreatePostDocument = gql`
 export function useCreatePostMutation() {
   return Urql.useMutation<CreatePostMutation, CreatePostMutationVariables>(CreatePostDocument);
 };
+export const DeletePostDocument = gql`
+    mutation DeletePost($id: Int!) {
+  deletePost(id: $id)
+}
+    `;
+
+export function useDeletePostMutation() {
+  return Urql.useMutation<DeletePostMutation, DeletePostMutationVariables>(DeletePostDocument);
+};
 export const ForgotPasswordDocument = gql`
     mutation ForgotPassword($email: String!) {
   forgotPassword(email: $email)
@@ -388,6 +424,27 @@ export const GetCurrentUserDocument = gql`
 
 export function useGetCurrentUserQuery(options: Omit<Urql.UseQueryArgs<GetCurrentUserQueryVariables>, 'query'> = {}) {
   return Urql.useQuery<GetCurrentUserQuery>({ query: GetCurrentUserDocument, ...options });
+};
+export const GetPostByIdDocument = gql`
+    query getPostById($id: Int!) {
+  getPostById(id: $id) {
+    id
+    createdAt
+    updatedAt
+    title
+    text
+    points
+    voteStatus
+    author {
+      id
+      username
+    }
+  }
+}
+    `;
+
+export function useGetPostByIdQuery(options: Omit<Urql.UseQueryArgs<GetPostByIdQueryVariables>, 'query'> = {}) {
+  return Urql.useQuery<GetPostByIdQuery>({ query: GetPostByIdDocument, ...options });
 };
 export const GetAllPostsDocument = gql`
     query getAllPosts($limit: Int!, $cursor: String) {

@@ -4,13 +4,13 @@ import { useGetAllPostsQuery } from '../generated/graphql';
 import React from 'react';
 import Layout from '../components/Layout';
 import NextLink from 'next/link';
-import { Box, Button, Flex, Heading, Stack, Text } from '@chakra-ui/core';
+import { Box, Button, Flex, Heading, Link, Stack, Text } from '@chakra-ui/core';
 import { useState } from 'react';
 import { Vote } from '../components/Vote';
 
 const Index = () => {
   const [variables, setVariables] = useState({ limit: 15, cursor: null as null | string });
-  const [{ data, fetching, stale } ] = useGetAllPostsQuery({ variables });
+  const [{ data, fetching, stale }] = useGetAllPostsQuery({ variables });
   const { limit } = variables;
 
   if (!fetching && !data) {
@@ -34,13 +34,17 @@ const Index = () => {
         <div>loading..</div>
       ) : (
         <Stack spacing={8}>
-          { data!.getAllPosts.posts.map(post => (
+          { data!.getAllPosts.posts.map(post => !post ? null : (
             <Box key={post.id} p={5} shadow="md" borderWidth="1px">
               <Flex alignItems="center">
                 <Vote post={post} />
                 <Box width="100%">
                   <Flex alignItems="center" justifyContent="space-between">
-                    <Heading fontSize="xl" >{post.title}</Heading>
+                    <NextLink href="/post/[id]" as={`/post/${post.id}`}>
+                      <Link>
+                        <Heading fontSize="xl" >{post.title}</Heading>
+                      </Link>
+                    </NextLink>
                     <Text fontSize="s" color="grey">posted by { post.author.username }</Text>
                   </Flex>
                   <Text mt={4}>{post.textSnippet}</Text>

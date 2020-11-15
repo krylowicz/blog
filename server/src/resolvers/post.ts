@@ -39,10 +39,16 @@ export class PostResolver {
     const realLimit = Math.min(50, limit);
     const realLimitPlusOne = Math.min(50, limit) + 1;
     
-    const replacements: any[] = [realLimitPlusOne, userId];
+    const replacements: any[] = [realLimitPlusOne];
 
+    if (userId) {
+      replacements.push(userId);
+    }
+
+    let cursorIndex = 3;
     if (cursor) {
       replacements.push(new Date(parseInt(cursor)));
+      cursorIndex = replacements.length;
     }
 
     const posts = await getConnection().query(`
@@ -55,7 +61,7 @@ export class PostResolver {
       ${ userId ? '(select value from upvote where "userId" = $2 and "postId" = p.id) "voteStatus"' : 'null as "voteStatus"'}
       from post p 
       inner join public.user u on u.id = p."authorId"
-      ${cursor ? `where p."createdAt" < $3` : ''}
+      ${cursor ? `where p."createdAt" < $${cursorIndex}` : ''}
       order by p."createdAt" DESC
       limit $1
     `, replacements)
@@ -65,9 +71,9 @@ export class PostResolver {
 
   @Query(() => Post, {nullable: true}) //graphql types
   getPostById(
-    @Arg('id') id: number, // number is a typescript type
+    @Arg('id', () => Int) id: number, // number is a typescript type
   ): Promise<Post | undefined> {
-    return Post.findOne(id);
+    return Post.findOne(id, { relations: ['author'] });
   }
 
   @Mutation(() => Post)
@@ -98,14 +104,15 @@ export class PostResolver {
   }
 
   @Mutation(() => Boolean)
-  async deletePost(@Arg('id') id: number): Promise<boolean> {
-    try {
-      await Post.delete(id);
-    } catch {
-      return false;
-    }
-
-    return true;  
+  @UseMiddleware(isAuth)
+  async deletePost(
+    @Arg('id', () => Int) id: number,
+    @Ctx() { req }: MyContext
+  ): Promise<boolean> {
+    const { userId } = req.session!;
+  
+    await Post.delete({ id, authorId: userId });
+    return true;
   }
 
   @Mutation(() => Boolean)
