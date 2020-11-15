@@ -4,6 +4,7 @@ import { MyContext } from 'src/types';
 import { isAuth } from '../middlewre/isAuth';
 import { getConnection } from 'typeorm';
 import { Upvote } from '../entities/Upvote';
+import { User } from '../entities/User';
 
 @InputType()
 class PostInput {
@@ -28,40 +29,48 @@ export class PostResolver {
     return root.text.slice(0, 50);
   }
 
+  @FieldResolver(() => User)
+  author(
+    @Root() post: Post,
+    @Ctx() { userLoader }: MyContext
+  ) {
+    return userLoader.load(post.authorId);
+  }
+
+  @FieldResolver(() => Int, { nullable: true })
+  async getVoteStatus (
+    @Root() post: Post,
+    @Ctx() { req, upvoteLoader }: MyContext
+  ) {
+    const { userId } = req.session!
+
+    if (!userId) {
+      return null;
+    }
+
+    const upvote = await upvoteLoader.load({ postId: post.id, userId });
+
+    return upvote ? upvote.value : null;
+  }
+
   @Query(() => PaginatedPosts) //type-graphql requires capital letter
   async getAllPosts(
     @Arg('limit', () => Int) limit: number,
     @Arg('cursor', () => String, { nullable: true }) cursor: string | null, // when setting nullable to true setting explicit type in neccesary
-    @Ctx() { req }: MyContext
   ): Promise<PaginatedPosts> {
-    const { userId } = req.session!;
-
     const realLimit = Math.min(50, limit);
     const realLimitPlusOne = Math.min(50, limit) + 1;
     
     const replacements: any[] = [realLimitPlusOne];
 
-    if (userId) {
-      replacements.push(userId);
-    }
-
-    let cursorIndex = 3;
     if (cursor) {
       replacements.push(new Date(parseInt(cursor)));
-      cursorIndex = replacements.length;
     }
 
     const posts = await getConnection().query(`
-      select p.*,
-      json_build_object(
-        'id', u.id,
-        'username', u.username,
-        'email', u.email
-      ) author,
-      ${ userId ? '(select value from upvote where "userId" = $2 and "postId" = p.id) "voteStatus"' : 'null as "voteStatus"'}
+      select p.*
       from post p 
-      inner join public.user u on u.id = p."authorId"
-      ${cursor ? `where p."createdAt" < $${cursorIndex}` : ''}
+      ${cursor ? `where p."createdAt" < $2` : ''}
       order by p."createdAt" DESC
       limit $1
     `, replacements)
@@ -73,7 +82,7 @@ export class PostResolver {
   getPostById(
     @Arg('id', () => Int) id: number, // number is a typescript type
   ): Promise<Post | undefined> {
-    return Post.findOne(id, { relations: ['author'] });
+    return Post.findOne(id);
   }
 
   @Mutation(() => Post)
@@ -126,37 +135,37 @@ export class PostResolver {
     @Ctx() { req }: MyContext
   ): Promise<boolean> {
     const { userId } = req.session!;
-
-    const upvote = await Upvote.findOne({ where: { postId, userId } })
     const isUpvote = value !== -1;
     const signedValue = isUpvote ? 1 : -1;
+
+    const upvote = await Upvote.findOne({ where: { postId, userId } });
 
      if (upvote && upvote.value !== signedValue) { //user has voted on the post before and they are changing thier vote
        await getConnection().transaction(async tm => {
         await tm.query(`
           update upvote
-          set value = ${signedValue}
-          where "postId" = ${postId} and "userId" = ${userId}
-        `);
+          set value = $1
+          where "postId" = $2 and "userId" = $3
+        `, [signedValue, postId, userId]);
 
         await tm.query(`
           update post
-          set points = points + ${2 * signedValue}
-          where id = ${postId}
-        `);
+          set points = points + $1
+          where id = $2
+        `, [2 * signedValue, postId]);
        })
      } else if (!upvote) { // has never voted before
       await getConnection().transaction(async tm => {
         await tm.query(`
           insert into upvote ("userId", "postId", value)
-          values(${userId}, ${postId}, ${signedValue});
-        `);
+          values($1, $2, $3);
+        `, [userId, postId, signedValue]);
 
         await tm.query(`
           update post
-          set points = points + ${signedValue}
-          where id = ${postId};
-        `);
+          set points = points + $1
+          where id = $2
+        `, [signedValue, postId]);
       });
      }
 

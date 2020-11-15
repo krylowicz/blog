@@ -148,11 +148,6 @@ export const createUrqlClient = (ssrExchange: any, ctx: any) => {
                 _result,
                 () => ({ getCurrentUser: null }) 
               );
-              const allFields = cache.inspectFields('Query');
-              const fieldInfos = allFields.filter(info => info.fieldName == 'getAllPosts');
-              fieldInfos.forEach(fieldInfo => {
-                cache.invalidate('Query', 'getAllPosts', fieldInfo.arguments || {} );
-              });
             },
             register: (_result, args, cache, info) => {
               betterUpdateQuery<RegisterMutation, GetCurrentUserQuery>(

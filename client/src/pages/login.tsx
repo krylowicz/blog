@@ -1,20 +1,19 @@
-import React from 'react'
-import { Formik, Form } from 'formik'; 
-import { Wrapper } from '../components/Wrapper';
-import { InputField } from '../components/InputField';
 import { Box, Button, Flex, Link } from '@chakra-ui/core';
-import { useLoginMutation } from '../generated/graphql';
-import { toErrorMap } from '../utils/toErrorMap';
-import { useRouter } from 'next/router';
-import { createUrqlClient } from '../utils/createUrqlClient';
-import { withUrqlClient } from 'next-urql';
+import { Form, Formik } from 'formik';
 import NextLink from 'next/link';
+import { useRouter } from 'next/router';
+import React from 'react';
+import { InputField } from '../components/InputField';
+import { Wrapper } from '../components/Wrapper';
+import { GetCurrentUserDocument, GetCurrentUserQuery, useLoginMutation } from '../generated/graphql';
+import { toErrorMap } from '../utils/toErrorMap';
+import { withApollo } from '../utils/withApollo';
 
 interface loginProps {}
 
 const Login: React.FC<loginProps> = ({}) => {
   const router = useRouter();
-  const [, login] = useLoginMutation();
+  const [login] = useLoginMutation();
 
   return (
     <Wrapper variant="small">
@@ -31,7 +30,19 @@ const Login: React.FC<loginProps> = ({}) => {
             email = "";
           }
 
-          const response = await login({ options: { email, username, password } });
+          const response = await login({ 
+            variables: { options: { email, username, password } },
+            update: (cache, { data }) => {
+              cache.writeQuery<GetCurrentUserQuery>({
+                query: GetCurrentUserDocument,
+                data: {
+                  __typename: 'Query',
+                  getCurrentUser: data?.login.user,
+                }
+              });
+              cache.evict({ fieldName: 'getAllPosts' });
+            },
+          });
 
           if (response.data?.login.errors) {
             setErrors(toErrorMap(response.data.login.errors)); // ? isn't requires bc ts will infere that this is defined bc of if statement
@@ -63,4 +74,4 @@ const Login: React.FC<loginProps> = ({}) => {
   );
 }
 
-export default withUrqlClient(createUrqlClient)(Login);
+export default withApollo({ ssr: false })(Login);

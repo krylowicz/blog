@@ -12,11 +12,11 @@ export class User extends BaseEntity {
 
   @Field()
   @Column({ unique: true }) 
-  email: string;
+  email!: string;
 
   @Field()
   @Column({ unique: true }) 
-  username: string;
+  username!: string;
 
   // without @Field() you can't access password trough grapql query (only a database column)
   @Column() 

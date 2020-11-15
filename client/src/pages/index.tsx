@@ -1,22 +1,24 @@
-import { withUrqlClient } from 'next-urql';
-import { createUrqlClient } from '../utils/createUrqlClient';
-import { useGetAllPostsQuery } from '../generated/graphql';
+import { Box, Button, Flex, Heading, Link, Stack, Text } from '@chakra-ui/core';
+import NextLink from 'next/link';
 import React from 'react';
 import Layout from '../components/Layout';
-import NextLink from 'next/link';
-import { Box, Button, Flex, Heading, Link, Stack, Text } from '@chakra-ui/core';
-import { useState } from 'react';
 import { Vote } from '../components/Vote';
+import { useGetAllPostsQuery } from '../generated/graphql';
+import { withApollo } from '../utils/withApollo';
 
 const Index = () => {
-  const [variables, setVariables] = useState({ limit: 15, cursor: null as null | string });
-  const [{ data, fetching, stale }] = useGetAllPostsQuery({ variables });
-  const { limit } = variables;
+  const { data, error, loading, fetchMore, variables } = useGetAllPostsQuery({ 
+    variables: {
+    limit: 15,
+    cursor: null,
+    },
+    notifyOnNetworkStatusChange: true,
+  });
 
-  if (!fetching && !data) {
+  if (!loading && !data) {
     return (
       <Flex>
-        <Box m="auto" my={8}>fetching failed</Box>
+        <Box m="auto" my={8}>{error?.message}</Box>
       </Flex>
     )
   }
@@ -30,8 +32,8 @@ const Index = () => {
         </NextLink>
       </Flex>
       <br />
-      {!data && fetching ? (
-        <div>loading..</div>
+      {!data && loading ? (
+        <div>loading...</div>
       ) : (
         <Stack spacing={8}>
           { data!.getAllPosts.posts.map(post => !post ? null : (
@@ -56,7 +58,41 @@ const Index = () => {
       )}
       { data && data.getAllPosts.hasMore ? (
       <Flex>
-        <Button onClick={() => setVariables({ limit, cursor: data.getAllPosts.posts[data.getAllPosts.posts.length - 1].createdAt })} isLoading={stale} m="auto" my={8}>load more</Button>
+        <Button 
+          onClick={() => {
+            const _variables = { 
+              limit: variables?.limit,
+              cursor: data.getAllPosts.posts[data.getAllPosts.posts.length - 1].createdAt,
+             }
+
+            fetchMore({
+              variables: _variables,
+              // THIS WAY IS UNSUPORRTED
+              
+              // updateQuery: (previousValue, { fetchMoreResult }): GetAllPostsQuery => {
+              //   if (!fetchMoreResult) {
+              //     return previousValue as GetAllPostsQuery;
+              //   }
+              //   return {
+              //     __typename: "Query",
+              //     getAllPosts: {
+              //       __typename: 'PaginatedPosts',
+              //       hasMore: (fetchMoreResult as GetAllPostsQuery).getAllPosts.hasMore,
+              //       posts: [
+              //         ...(previousValue as GetAllPostsQuery).getAllPosts.posts,
+              //         ...(fetchMoreResult as GetAllPostsQuery).getAllPosts.posts,
+              //       ],
+              //     }
+              //   }
+              // }
+            });
+          }}
+          isLoading={loading} 
+          m="auto" 
+          my={8}
+        >
+          load more
+        </Button>
       </Flex>
       ) : (
         <Box my={8} />
@@ -65,4 +101,4 @@ const Index = () => {
   )  
 };
 
-export default withUrqlClient(createUrqlClient, { ssr: true })(Index);
+export default withApollo({ ssr: true })(Index);

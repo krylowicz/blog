@@ -1,4 +1,4 @@
-import { CSSReset, ChakraProvider } from '@chakra-ui/core';
+import { ChakraProvider, CSSReset } from '@chakra-ui/core';
 import theme from '../theme';
 
 function MyApp({ Component, pageProps }: any) {
